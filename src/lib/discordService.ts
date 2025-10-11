@@ -4,6 +4,9 @@ class DiscordService {
   private client: Client;
   private ready = false;
   private showButtons = process.env.DISCORD_SHOW_BUTTONS === 'true';
+  private imageCache = new Map<string, boolean>();
+  private lastUpdate: { title: string; artist: string; position: number; isPlaying: boolean } | null = null;
+  private updateTimeout: NodeJS.Timeout | null = null;
 
   constructor() {
     const clientId = process.env.DISCORD_CLIENT_ID || '1037879885772890232';
@@ -30,74 +33,95 @@ class DiscordService {
     });
   }
 
+  private async checkImageExists(beatmapSetID: string): Promise<boolean> {
+    if (this.imageCache.has(beatmapSetID)) {
+      return this.imageCache.get(beatmapSetID) ?? false;
+    }
+
+    try {
+      const response = await fetch(
+        `https://assets.ppy.sh/beatmaps/${beatmapSetID}/covers/list@2x.jpg`,
+        { method: 'HEAD' }
+      );
+      const exists = response.status !== 404;
+      this.imageCache.set(beatmapSetID, exists);
+      return exists;
+    } catch {
+      this.imageCache.set(beatmapSetID, false);
+      return false;
+    }
+  }
+
   updatePlaying(title: string, artist: string, beatmapSetID: string, position: number, duration: number): void {
     if (!this.ready) {
-      console.warn('[Discord] Not ready, skipping');
       return;
     }
 
-    const endTimestamp = new Date(Date.now() + (duration - position) * 1000);
-    const startTimestamp = new Date(endTimestamp.getTime() - duration * 1000);
+    if (this.lastUpdate?.title === title && this.lastUpdate?.artist === artist && this.lastUpdate?.isPlaying === true && Math.abs(this.lastUpdate.position - position) < 2) {
+      return;
+    }
 
-    fetch(`https://assets.ppy.sh/beatmaps/${beatmapSetID}/covers/list@2x.jpg`, { method: 'HEAD' })
-      .then((res) => {
-        const largeImageKey = res.status === 404 ? 'logo' : `https://assets.ppy.sh/beatmaps/${beatmapSetID}/covers/list@2x.jpg`;
+    this.lastUpdate = { title, artist, position, isPlaying: true };
 
-        const presence: SetActivity = {
-          details: title,
-          state: artist,
-          type: 2,
-          startTimestamp,
-          endTimestamp,
-          largeImageKey,
-        };
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
+    }
 
-        if (this.showButtons) {
-          presence.buttons = [
-            { label: 'osu! Radio', url: 'https://github.com/yourusername/osu-radio' },
-            { label: 'Go to this map on osu!', url: `https://osu.ppy.sh/beatmapsets/${beatmapSetID}` },
-          ];
-        }
+    this.updateTimeout = setTimeout(() => {
+      this.performUpdate(title, artist, beatmapSetID, position, duration, true);
+    }, 100);
+  }
 
-        console.warn(`[Discord] Playing: ${title}`);
-        this.client.user?.setActivity(presence);
-      })
-      .catch((err) => {
-        console.error('[Discord] Fetch error:', err);
-      });
+  private async performUpdate(title: string, artist: string, beatmapSetID: string, position: number, duration: number, isPlaying: boolean): Promise<void> {
+    const imageExists = await this.checkImageExists(beatmapSetID);
+    const largeImageKey = imageExists 
+      ? `https://assets.ppy.sh/beatmaps/${beatmapSetID}/covers/list@2x.jpg`
+      : 'logo';
+
+    const presence: SetActivity = {
+      details: title,
+      state: artist,
+      type: 2,
+      largeImageKey,
+    };
+
+    if (isPlaying) {
+      const endTimestamp = new Date(Date.now() + (duration - position) * 1000);
+      const startTimestamp = new Date(endTimestamp.getTime() - duration * 1000);
+      presence.startTimestamp = startTimestamp;
+      presence.endTimestamp = endTimestamp;
+    } else {
+      presence.largeImageText = 'Paused';
+    }
+
+    if (this.showButtons) {
+      presence.buttons = [
+        { label: 'osu! Radio', url: 'https://github.com/yourusername/osu-radio' },
+        { label: 'Go to this map on osu!', url: `https://osu.ppy.sh/beatmapsets/${beatmapSetID}` },
+      ];
+    }
+
+    this.client.user?.setActivity(presence);
   }
 
   updatePaused(title: string, artist: string, beatmapSetID: string): void {
     if (!this.ready) {
-      console.warn('[Discord] Not ready, skipping');
       return;
     }
 
-    fetch(`https://assets.ppy.sh/beatmaps/${beatmapSetID}/covers/list@2x.jpg`, { method: 'HEAD' })
-      .then((res) => {
-        const largeImageKey = res.status === 404 ? 'logo' : `https://assets.ppy.sh/beatmaps/${beatmapSetID}/covers/list@2x.jpg`;
+    if (this.lastUpdate?.title === title && this.lastUpdate?.artist === artist && this.lastUpdate?.isPlaying === false) {
+      return;
+    }
 
-        const presence: SetActivity = {
-          details: title,
-          state: artist,
-          type: 2,
-          largeImageKey,
-          largeImageText: 'Paused',
-        };
+    this.lastUpdate = { title, artist, position: 0, isPlaying: false };
 
-        if (this.showButtons) {
-          presence.buttons = [
-            { label: 'osu! Radio', url: 'https://github.com/yourusername/osu-radio' },
-            { label: 'Go to this map on osu!', url: `https://osu.ppy.sh/beatmapsets/${beatmapSetID}` },
-          ];
-        }
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
+    }
 
-        console.warn(`[Discord] Paused: ${title}`);
-        this.client.user?.setActivity(presence);
-      })
-      .catch((err) => {
-        console.error('[Discord] Fetch error:', err);
-      });
+    this.updateTimeout = setTimeout(() => {
+      this.performUpdate(title, artist, beatmapSetID, 0, 0, false);
+    }, 100);
   }
 }
 
