@@ -86,7 +86,7 @@ export async function updateDiscordPlaying(song: Song, length: number, position:
     startTimestamp,
     endTimestamp,
     largeImageKey,
-    buttons: [{ label: 'osu! Radio', url: 'https://github.com/yourusername/osu-radio' }],
+    buttons: [{ label: 'osu! Radio', url: 'https://github.com/L3ne/osu-radio' }],
   };
 
   if (song.beatmapSetID) {

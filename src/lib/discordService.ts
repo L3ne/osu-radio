@@ -96,7 +96,7 @@ class DiscordService {
 
     if (this.showButtons) {
       presence.buttons = [
-        { label: 'osu! Radio', url: 'https://github.com/yourusername/osu-radio' },
+        { label: 'osu! Radio', url: 'https://github.com/L3ne/osu-radio' },
         { label: 'Go to this map on osu!', url: `https://osu.ppy.sh/beatmapsets/${beatmapSetID}` },
       ];
     }
