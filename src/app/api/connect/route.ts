@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server';
-import { connectDiscord } from '@/lib/discord';
 
 export async function POST(): Promise<NextResponse> {
   try {
-    console.warn('[API] /api/connect called');
-    await connectDiscord();
-    console.warn('[API] /api/connect success');
+    console.warn('[API] /api/connect called - DiscordService auto-connects on init');
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('[API] /api/connect error:', error);

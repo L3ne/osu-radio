@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { discord } from '@/lib/discordService';
+import { updateDiscordPlaying, updateDiscordPaused } from '@/lib/discordService';
 import { Song } from '@/types';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -12,9 +12,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     };
 
     if (isPlaying) {
-      discord.updatePlaying(song.title, song.artist, song.beatmapSetID, currentTime, duration);
+      updateDiscordPlaying(song.title, song.artist, song.beatmapSetID);
     } else {
-      discord.updatePaused(song.title, song.artist, song.beatmapSetID);
+      updateDiscordPaused(song.title, song.artist, song.beatmapSetID);
     }
 
     return NextResponse.json({ success: true });

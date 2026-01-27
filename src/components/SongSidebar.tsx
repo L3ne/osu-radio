@@ -145,11 +145,7 @@ export function SongSidebar({ songs, currentIndex, onSongSelect, isLoading, onSc
                   whileHover={{ scale: 1.02, x: 4 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => onSongSelect(actualIndex)}
-                  className={`w-full text-left p-2 rounded-md transition-all group ${
-                    isActive
-                      ? 'bg-primary/20 border border-primary/50'
-                      : 'hover:bg-white/5 border border-transparent'
-                  }`}
+                  className="w-full text-left p-2 rounded-md transition-all group hover:bg-white/5 border border-transparent"
                 >
                   <div className="flex items-center gap-3">
                     <div className="relative flex-shrink-0">
@@ -161,26 +157,9 @@ export function SongSidebar({ songs, currentIndex, onSongSelect, isLoading, onSc
                           e.currentTarget.src = 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Osu%21_Logo_2016.svg/240px-Osu%21_Logo_2016.svg.png';
                         }}
                       />
-                      <AnimatePresence>
-                        {isActive && (
-                          <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-primary/30 rounded flex items-center justify-center"
-                          >
-                            <motion.div
-                              animate={{ scale: [1, 1.2, 1] }}
-                              transition={{ repeat: Infinity, duration: 1.5 }}
-                            >
-                              <BiMusic className="w-5 h-5 text-white" />
-                            </motion.div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className={`font-medium truncate text-sm ${isActive ? 'text-primary' : 'text-white'}`}>
+                      <div className="font-medium truncate text-sm text-white">
                         {song.title}
                       </div>
                       <div className="text-xs text-white/60 truncate">{song.artist}</div>

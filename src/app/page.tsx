@@ -17,12 +17,18 @@ export default function Home(): JSX.Element {
   const [isLoading, setIsLoading] = useState(false);
   const [volume, setVolume] = useState(0.7);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const lastDiscordUpdate = useRef<{ title: string; artist: string; isPlaying: boolean } | null>(null);
+  const discordUpdateTimeout = useRef<NodeJS.Timeout | null>(null);
   const { likedSongs, toggleLike, isLiked } = useLikes();
 
   const currentSong = songs[currentIndex];
 
   const playSong = useCallback((index: number): void => {
     if (index < 0 || index >= songs.length) return;
+    
+    // Reset Discord update tracking when manually selecting a new song
+    lastDiscordUpdate.current = null;
+    
     setCurrentIndex(index);
     setIsPlaying(true);
     setTimeout(() => {
@@ -59,8 +65,9 @@ export default function Home(): JSX.Element {
     audio.volume = volume;
 
     const updateTime = (): void => {
-      setCurrentTime(audio.currentTime);
-      setDuration(audio.duration || 0);
+      // Don't update state continuously to avoid Discord RPC spam
+      // setCurrentTime(audio.currentTime);
+      // setDuration(audio.duration || 0);
     };
 
     const handleEnded = (): void => {
@@ -78,6 +85,7 @@ export default function Home(): JSX.Element {
     };
   }, [volume, currentIndex, songs.length]);
 
+  // Update Discord RPC when song changes or play state changes
   useEffect(() => {
     const song = songs[currentIndex];
     if (!song) return;
